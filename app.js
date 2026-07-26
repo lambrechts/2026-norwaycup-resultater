@@ -10,11 +10,13 @@ const ARENA_MAPS = [
   ["bjølsen", "https://norwaycup.no/wp-content/uploads/2026/07/Voldslokka_Bjolsen_2026.pdf"],
   ["ekeberg", "https://norwaycup.no/wp-content/uploads/2026/07/Banekart-NC2026-2.pdf"],
 ];
-const state = { matches: [], team: "all", status: "all" };
+const FAVORITES_KEY = "norwaycup-favorite-teams";
+const state = { matches: [], view: "all", status: "all", favorites: loadFavorites() };
 
 const elements = {
   matches: document.querySelector("#matches"),
-  teams: document.querySelector("#team-buttons"),
+  view: document.querySelector("#view-select"),
+  favorite: document.querySelector("#favorite-button"),
   statuses: document.querySelector("#status-buttons"),
   next: document.querySelector("#next-match"),
   count: document.querySelector("#match-count"),
@@ -89,23 +91,61 @@ const dayFormatter = new Intl.DateTimeFormat("nb-NO", { weekday: "long", day: "n
 const timeFormatter = new Intl.DateTimeFormat("nb-NO", { hour: "2-digit", minute: "2-digit" });
 const updatedFormatter = new Intl.DateTimeFormat("nb-NO", { hour: "2-digit", minute: "2-digit" });
 
-function renderTeamButtons() {
-  const teams = [...new Map(state.matches.map((match) => [match.tracked_team_id, match.tracked_team_name])).entries()];
-  elements.teams.replaceChildren();
-  const options = [["all", "Alle lag"], ...teams.map(([id, name]) => [id, teamButtonName(name)])];
-  options.forEach(([id, name]) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = `team-button${state.team === id ? " is-active" : ""}`;
-    button.textContent = name;
-    button.addEventListener("click", () => { state.team = id; render(); });
-    elements.teams.append(button);
-  });
+function loadFavorites() {
+  try { return new Set(JSON.parse(localStorage.getItem(FAVORITES_KEY) || "[]").map(String)); }
+  catch { return new Set(); }
+}
+
+function saveFavorites() {
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify([...state.favorites]));
+}
+
+function teamEntries() {
+  return [...new Map(state.matches.map((match) => [match.tracked_team_id, match.tracked_team_name])).entries()]
+    .sort((a, b) => a[1].localeCompare(b[1], "nb"));
+}
+
+function cohort(name) { return name.split(" ")[0]; }
+function selectedTeamId() { return state.view.startsWith("team:") ? state.view.slice(5) : ""; }
+
+function renderViewSelect() {
+  const teams = teamEntries();
+  const cohorts = [...new Set(teams.map(([, name]) => cohort(name)))].sort((a, b) => a.localeCompare(b, "nb", { numeric: true }));
+  elements.view.replaceChildren();
+
+  const overview = document.createElement("optgroup");
+  overview.label = "Oversikt";
+  overview.append(new Option("Alle lag", "all"), new Option(`Favoritter (${state.favorites.size})`, "favorites"));
+  const cohortGroup = document.createElement("optgroup");
+  cohortGroup.label = "Årskull";
+  cohorts.forEach((name) => cohortGroup.append(new Option(name, `cohort:${name}`)));
+  const teamGroup = document.createElement("optgroup");
+  teamGroup.label = "Enkeltlag";
+  teams.forEach(([id, name]) => teamGroup.append(new Option(teamButtonName(name), `team:${id}`)));
+  elements.view.append(overview, cohortGroup, teamGroup);
+  elements.view.value = state.view;
+
+  const teamId = selectedTeamId();
+  elements.favorite.hidden = !teamId;
+  if (teamId) {
+    const favorite = state.favorites.has(teamId);
+    elements.favorite.textContent = favorite ? "★ Favoritt" : "☆ Favoritt";
+    elements.favorite.classList.toggle("is-favorite", favorite);
+    elements.favorite.setAttribute("aria-pressed", String(favorite));
+  }
+}
+
+function matchesView(match) {
+  if (state.view === "all") return true;
+  if (state.view === "favorites") return state.favorites.has(match.tracked_team_id);
+  if (state.view.startsWith("cohort:")) return cohort(match.tracked_team_name) === state.view.slice(7);
+  if (state.view.startsWith("team:")) return match.tracked_team_id === state.view.slice(5);
+  return true;
 }
 
 function filteredMatches() {
   return state.matches.filter((match) => {
-    const teamMatches = state.team === "all" || match.tracked_team_id === state.team;
+    const teamMatches = matchesView(match);
     const statusMatches = state.status === "all" || (state.status === "upcoming" ? isUpcoming(match) : match.status === "finished");
     return teamMatches && statusMatches;
   });
@@ -114,7 +154,7 @@ function filteredMatches() {
 function renderNextMatch() {
   const now = new Date();
   const candidates = state.matches
-    .filter((match) => (state.team === "all" || match.tracked_team_id === state.team) && isUpcoming(match) && dateValue(match) >= now)
+    .filter((match) => matchesView(match) && isUpcoming(match) && dateValue(match) >= now)
     .sort((a, b) => dateValue(a) - dateValue(b));
   const match = candidates[0];
   if (!match) { elements.next.replaceChildren(); return; }
@@ -123,7 +163,7 @@ function renderNextMatch() {
   card.className = "next-card";
   card.innerHTML = `
     <div><div class="next-card__label">Neste kamp</div><div class="next-card__date">${capitalize(dayFormatter.format(dateValue(match)))} · ${timeFormatter.format(dateValue(match))}</div></div>
-    <div class="next-card__teams">${escapeHtml(shortTeamName(match.home_team))}<span>–</span>${escapeHtml(shortTeamName(match.away_team))}</div>
+    <div class="next-card__teams">${teamLinkMarkup(match.home_team, match.home_team_id)}<span>–</span>${teamLinkMarkup(match.away_team, match.away_team_id)}</div>
     <div class="next-card__arena">${arenaMarkup(match.arena)}</div>`;
   elements.next.replaceChildren(card);
 }
@@ -139,14 +179,19 @@ function renderCard(match) {
 
   const home = card.querySelector(".team--home");
   const away = card.querySelector(".team--away");
-  home.querySelector(".team__name").textContent = shortTeamName(match.home_team);
-  away.querySelector(".team__name").textContent = shortTeamName(match.away_team);
+  const homeLink = home.querySelector(".team__name");
+  const awayLink = away.querySelector(".team__name");
+  homeLink.textContent = shortTeamName(match.home_team);
+  awayLink.textContent = shortTeamName(match.away_team);
+  setTeamLink(homeLink, match.home_team_id);
+  setTeamLink(awayLink, match.away_team_id);
   home.querySelector(".team__score").textContent = match.home_goals;
   away.querySelector(".team__score").textContent = match.away_goals;
   if (match.winner === "home") home.classList.add("is-winner");
   if (match.winner === "away") away.classList.add("is-winner");
   card.querySelector(".arena").innerHTML = arenaMarkup(match.arena);
   card.querySelector(".group").textContent = match.group;
+  card.querySelector(".match-link").href = norwayCupUrl("match", match.match_id);
   return card;
 }
 
@@ -155,7 +200,9 @@ function renderMatches() {
   elements.count.textContent = `${matches.length} ${matches.length === 1 ? "kamp" : "kamper"}`;
   elements.matches.replaceChildren();
   if (!matches.length) {
-    elements.matches.innerHTML = '<div class="empty"><strong>Ingen kamper her</strong>Prøv et annet lag eller filter.</div>';
+    elements.matches.innerHTML = state.view === "favorites" && state.favorites.size === 0
+      ? '<div class="empty"><strong>Ingen favoritter ennå</strong>Velg et enkeltlag over og trykk på «☆ Favoritt».</div>'
+      : '<div class="empty"><strong>Ingen kamper her</strong>Prøv et annet lag eller filter.</div>';
     return;
   }
 
@@ -177,13 +224,22 @@ function renderMatches() {
 }
 
 function render() {
-  renderTeamButtons();
+  renderViewSelect();
   renderNextMatch();
   renderMatches();
 }
 
 function capitalize(value) { return value.charAt(0).toUpperCase() + value.slice(1); }
 function escapeHtml(value) { const node = document.createElement("span"); node.textContent = value; return node.innerHTML; }
+function norwayCupUrl(type, id) { return `https://norwaycup.cupmanager.net/2026,nb/result/${type}/${id}`; }
+function setTeamLink(link, id) {
+  if (id) link.href = norwayCupUrl("team", id);
+  else { link.removeAttribute("href"); link.removeAttribute("target"); }
+}
+function teamLinkMarkup(name, id) {
+  const label = escapeHtml(shortTeamName(name));
+  return id ? `<a href="${norwayCupUrl("team", id)}" target="_blank" rel="noreferrer">${label}</a>` : label;
+}
 
 async function loadData() {
   elements.refresh.classList.add("is-loading");
@@ -215,6 +271,15 @@ elements.statuses.addEventListener("click", (event) => {
   state.status = button.dataset.status;
   elements.statuses.querySelectorAll("button").forEach((item) => item.classList.toggle("is-active", item === button));
   renderMatches();
+});
+elements.view.addEventListener("change", () => { state.view = elements.view.value; render(); });
+elements.favorite.addEventListener("click", () => {
+  const teamId = selectedTeamId();
+  if (!teamId) return;
+  if (state.favorites.has(teamId)) state.favorites.delete(teamId);
+  else state.favorites.add(teamId);
+  saveFavorites();
+  render();
 });
 elements.refresh.addEventListener("click", loadData);
 loadData();

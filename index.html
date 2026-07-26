@@ -28,8 +28,12 @@
     <main>
       <section id="next-match" class="next-match" aria-live="polite"></section>
 
-      <nav class="team-nav" aria-label="Velg lag">
-        <div id="team-buttons" class="team-nav__scroll"></div>
+      <nav class="view-nav" aria-label="Velg visning">
+        <label for="view-select">Vis kamper for</label>
+        <div class="view-nav__controls">
+          <select id="view-select" aria-label="Velg lag eller årskull"></select>
+          <button id="favorite-button" class="favorite-button" type="button" hidden></button>
+        </div>
       </nav>
 
       <div class="toolbar">
@@ -61,12 +65,13 @@
           </div>
         </div>
         <div class="teams">
-          <div class="team team--home"><span class="team__name"></span><strong class="team__score"></strong></div>
-          <div class="team team--away"><span class="team__name"></span><strong class="team__score"></strong></div>
+          <div class="team team--home"><a class="team__name" target="_blank" rel="noreferrer"></a><strong class="team__score"></strong></div>
+          <div class="team team--away"><a class="team__name" target="_blank" rel="noreferrer"></a><strong class="team__score"></strong></div>
         </div>
         <div class="match-card__footer">
           <span class="arena"></span>
           <span class="group"></span>
+          <a class="match-link" target="_blank" rel="noreferrer">Kampside ↗</a>
         </div>
       </article>
     </template>
