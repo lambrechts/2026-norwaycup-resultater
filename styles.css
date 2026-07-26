@@ -8,6 +8,9 @@
   --ink: #17231e;
   --muted: #65716b;
   --orange: #ee6b3b;
+  --varegg-blue: #174b9b;
+  --varegg-yellow: #f3c900;
+  --sandviken-red: #bd2636;
   --line: #dcded8;
   --shadow: 0 14px 40px rgba(12, 42, 31, .1);
 }
@@ -28,8 +31,19 @@ button { font: inherit; }
 .hero {
   position: relative;
   overflow: hidden;
-  background: var(--green-900);
+  background: linear-gradient(108deg, var(--varegg-blue) 0%, #123e84 48%, #8c2431 52%, var(--sandviken-red) 100%);
   color: white;
+}
+
+.hero::before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 5px;
+  background: linear-gradient(90deg, var(--varegg-yellow) 0 50%, #fff 50% 100%);
 }
 
 .hero::after {
@@ -55,7 +69,7 @@ button { font: inherit; }
   display: flex;
   align-items: center;
   gap: 9px;
-  color: #b7d5c7;
+  color: rgba(255,255,255,.78);
   font-size: .74rem;
   font-weight: 800;
   letter-spacing: .14em;
@@ -65,9 +79,9 @@ button { font: inherit; }
 .eyebrow__dot {
   width: 8px;
   height: 8px;
-  background: var(--orange);
+  background: var(--varegg-yellow);
   border-radius: 50%;
-  box-shadow: 0 0 0 5px rgba(238,107,59,.16);
+  box-shadow: 0 0 0 5px rgba(243,201,0,.18);
 }
 
 h1 {
@@ -77,8 +91,10 @@ h1 {
   letter-spacing: -.055em;
 }
 
-h1 span { color: var(--orange); font-weight: 400; }
-.hero p { margin: 13px 0 0; color: #c8dbd1; }
+h1 .club-varegg { color: var(--varegg-yellow); font-weight: 850; }
+h1 .club-slash { color: rgba(255,255,255,.68); font-weight: 400; }
+h1 .club-sandviken { color: white; font-weight: 850; }
+.hero p { margin: 13px 0 0; color: rgba(255,255,255,.8); }
 
 .hero__meta {
   display: flex;
@@ -86,7 +102,7 @@ h1 span { color: var(--orange); font-weight: 400; }
   justify-content: space-between;
   gap: 16px;
   margin-top: 28px;
-  color: #9fc0b0;
+  color: rgba(255,255,255,.72);
   font-size: .8rem;
 }
 
