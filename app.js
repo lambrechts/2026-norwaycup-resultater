@@ -61,6 +61,14 @@ function teamButtonName(name) {
   return `${age} ${color}`;
 }
 
+function teamClassName(name) {
+  const parts = name.split(" ");
+  const detail = parts.find((part) => part.toLowerCase().includes("7-er"))
+    || (/^\d+$/.test(parts.at(-1)) ? parts.at(-1) : "")
+    || (["gul", "blå", "hvit", "rød"].includes(parts.at(-1).toLowerCase()) ? parts.at(-1) : "");
+  return detail ? `${parts[0]} · ${detail}` : parts[0];
+}
+
 function dateValue(match) { return new Date(match.start_time); }
 function isUpcoming(match) { return match.status !== "finished"; }
 function dayKey(match) { return match.start_time.slice(0, 10); }
@@ -124,6 +132,7 @@ function renderCard(match) {
   const card = elements.template.content.firstElementChild.cloneNode(true);
   if (match.status === "live") card.classList.add("is-live");
   card.querySelector("time").textContent = `Kl. ${timeFormatter.format(dateValue(match))}`;
+  card.querySelector(".class-pill").textContent = teamClassName(match.tracked_team_name);
   const pill = card.querySelector(".status-pill");
   pill.textContent = match.status === "finished" ? "Ferdig" : match.status === "live" ? "Live" : "Kommende";
   if (match.status === "live") pill.classList.add("is-live");

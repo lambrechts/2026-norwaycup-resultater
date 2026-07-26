@@ -22,6 +22,21 @@ TEAMS = {
     76353121: "J14 Sandviken/Varegg Blå",
     76353123: "J14 Sandviken/Varegg Hvit",
     76353119: "J14 Sandviken/Varegg Rød",
+    75670384: "J15 Sandviken",
+    76356822: "J17 Sandviken",
+    76334133: "J19 Sandviken",
+    76326714: "G15 Sandviken 1",
+    76326716: "G15 Sandviken 2",
+    76326718: "G15/16 7-er Sandviken",
+    75938121: "J16 Sandviken",
+    77112564: "G17 Sandviken",
+    76431744: "G19 Sandviken",
+    73060432: "G13 Sandviken Blå",
+    73060428: "G13 Sandviken Gul",
+    76138452: "G13 Sandviken Rød",
+    73060430: "G13 Sandviken Hvit",
+    75647960: "G14 Sandviken 1",
+    75647962: "G14 Sandviken 2",
 }
 
 # CupManager uses JSON5-like syntax for expansion fields. Scalar fields are
@@ -119,6 +134,8 @@ def match_rows(team_id: int, label: str, payload: dict[str, Any]) -> list[dict[s
     if not root:
         raise RuntimeError(f"Norway Cup returned no team data for {team_id}")
     team = dereference(root, responses)
+    if not isinstance(team, dict):
+        raise RuntimeError(f"Norway Cup returned an invalid team for {team_id}")
     matches = team.get("matches") or []
     rows = []
 
