@@ -49,6 +49,7 @@ EXPANSION = (
 FIELDS = [
     "tracked_team_id",
     "tracked_team_name",
+    "tracked_team_class",
     "match_id",
     "start_time",
     "status",
@@ -139,6 +140,8 @@ def match_rows(team_id: int, label: str, payload: dict[str, Any]) -> list[dict[s
     if not isinstance(team, dict):
         raise RuntimeError(f"Norway Cup returned an invalid team for {team_id}")
     matches = team.get("matches") or []
+    official_name = display_name(team.get("name")) or label
+    team_class = label.split(" ", 1)[0]
     rows = []
 
     for match in matches:
@@ -153,7 +156,8 @@ def match_rows(team_id: int, label: str, payload: dict[str, Any]) -> list[dict[s
         rows.append(
             {
                 "tracked_team_id": team_id,
-                "tracked_team_name": label,
+                "tracked_team_name": official_name,
+                "tracked_team_class": team_class,
                 "match_id": match.get("id", ""),
                 "start_time": start_time(match.get("start")),
                 "status": status(match),

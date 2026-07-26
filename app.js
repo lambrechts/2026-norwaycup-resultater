@@ -17,6 +17,8 @@ const elements = {
   matches: document.querySelector("#matches"),
   view: document.querySelector("#view-select"),
   favorite: document.querySelector("#favorite-button"),
+  favoritesDialog: document.querySelector("#favorites-dialog"),
+  favoriteOptions: document.querySelector("#favorite-options"),
   statuses: document.querySelector("#status-buttons"),
   next: document.querySelector("#next-match"),
   count: document.querySelector("#match-count"),
@@ -46,6 +48,15 @@ function parseCsv(text) {
   );
 }
 
+function normalizeMatch(match) {
+  const hasOfficialName = Boolean(match.tracked_team_class);
+  const trackedClass = match.tracked_team_class || match.tracked_team_name.split(" ")[0];
+  let officialName = match.tracked_team_name;
+  if (!hasOfficialName && match.tracked_team_id === match.home_team_id && match.home_team) officialName = match.home_team;
+  if (!hasOfficialName && match.tracked_team_id === match.away_team_id && match.away_team) officialName = match.away_team;
+  return { ...match, tracked_team_name: officialName, tracked_team_class: trackedClass };
+}
+
 function shortTeamName(name) {
   return name
     .replace(/^G16 /, "")
@@ -57,18 +68,12 @@ function shortTeamName(name) {
     .trim();
 }
 
-function teamButtonName(name) {
-  const age = name.split(" ")[0];
-  const color = name.split(" ").at(-1);
-  return `${age} ${color}`;
+function teamButtonName(name, className) {
+  return name.toLowerCase().startsWith(className.toLowerCase()) ? name : `${className} · ${name}`;
 }
 
-function teamClassName(name) {
-  const parts = name.split(" ");
-  const detail = parts.find((part) => part.toLowerCase().includes("7-er"))
-    || (/^\d+$/.test(parts.at(-1)) ? parts.at(-1) : "")
-    || (["gul", "blå", "hvit", "rød"].includes(parts.at(-1).toLowerCase()) ? parts.at(-1) : "");
-  return detail ? `${parts[0]} · ${detail}` : parts[0];
+function teamClassName(match) {
+  return match.tracked_team_class || match.tracked_team_name.split(" ")[0];
 }
 
 function dateValue(match) { return new Date(match.start_time); }
@@ -101,16 +106,26 @@ function saveFavorites() {
 }
 
 function teamEntries() {
-  return [...new Map(state.matches.map((match) => [match.tracked_team_id, match.tracked_team_name])).entries()]
-    .sort((a, b) => a[1].localeCompare(b[1], "nb"));
+  return [...new Map(state.matches.map((match) => [match.tracked_team_id, {
+    name: match.tracked_team_name,
+    className: match.tracked_team_class || match.tracked_team_name.split(" ")[0],
+  }])).entries()].sort((a, b) => compareTeams(a[1], b[1]));
 }
 
-function cohort(name) { return name.split(" ")[0]; }
-function selectedTeamId() { return state.view.startsWith("team:") ? state.view.slice(5) : ""; }
+function teamGender(team) { return team.className.startsWith("J") ? 0 : 1; }
+function teamAge(team) { return Number.parseInt(team.className.match(/\d+/)?.[0] || "99", 10); }
+function compareTeams(a, b) {
+  return teamGender(a) - teamGender(b)
+    || teamAge(a) - teamAge(b)
+    || a.className.localeCompare(b.className, "nb", { numeric: true })
+    || a.name.localeCompare(b.name, "nb", { numeric: true });
+}
+
+function cohort(match) { return match.tracked_team_class || match.tracked_team_name.split(" ")[0]; }
 
 function renderViewSelect() {
   const teams = teamEntries();
-  const cohorts = [...new Set(teams.map(([, name]) => cohort(name)))].sort((a, b) => a.localeCompare(b, "nb", { numeric: true }));
+  const cohorts = [...new Set(teams.map(([, team]) => team.className))].sort((a, b) => compareTeams({ className: a, name: a }, { className: b, name: b }));
   elements.view.replaceChildren();
 
   const overview = document.createElement("optgroup");
@@ -121,24 +136,52 @@ function renderViewSelect() {
   cohorts.forEach((name) => cohortGroup.append(new Option(name, `cohort:${name}`)));
   const teamGroup = document.createElement("optgroup");
   teamGroup.label = "Enkeltlag";
-  teams.forEach(([id, name]) => teamGroup.append(new Option(teamButtonName(name), `team:${id}`)));
+  teams.forEach(([id, team]) => teamGroup.append(new Option(teamButtonName(team.name, team.className), `team:${id}`)));
   elements.view.append(overview, cohortGroup, teamGroup);
   elements.view.value = state.view;
 
-  const teamId = selectedTeamId();
-  elements.favorite.hidden = !teamId;
-  if (teamId) {
-    const favorite = state.favorites.has(teamId);
-    elements.favorite.textContent = favorite ? "★ Favoritt" : "☆ Favoritt";
-    elements.favorite.classList.toggle("is-favorite", favorite);
-    elements.favorite.setAttribute("aria-pressed", String(favorite));
-  }
+  elements.favorite.textContent = `★ Velg favoritter${state.favorites.size ? ` (${state.favorites.size})` : ""}`;
+}
+
+function renderFavoriteOptions() {
+  elements.favoriteOptions.replaceChildren();
+  const teams = teamEntries();
+  const columns = [
+    ["Jentelag", teams.filter(([, team]) => team.className.startsWith("J"))],
+    ["Guttelag", teams.filter(([, team]) => team.className.startsWith("G"))],
+  ];
+  columns.forEach(([heading, columnTeams]) => {
+    const column = document.createElement("section");
+    column.className = "favorite-column";
+    const title = document.createElement("h3");
+    title.textContent = heading;
+    const list = document.createElement("div");
+    list.className = "favorite-column__list";
+    columnTeams.sort((a, b) => compareTeams(a[1], b[1])).forEach(([id, team]) => {
+      const label = document.createElement("label");
+      label.className = "favorite-option";
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.checked = state.favorites.has(id);
+      input.addEventListener("change", () => {
+        if (input.checked) state.favorites.add(id);
+        else state.favorites.delete(id);
+        saveFavorites();
+      });
+      const name = document.createElement("span");
+      name.textContent = teamButtonName(team.name, team.className);
+      label.append(input, name);
+      list.append(label);
+    });
+    column.append(title, list);
+    elements.favoriteOptions.append(column);
+  });
 }
 
 function matchesView(match) {
   if (state.view === "all") return true;
   if (state.view === "favorites") return state.favorites.has(match.tracked_team_id);
-  if (state.view.startsWith("cohort:")) return cohort(match.tracked_team_name) === state.view.slice(7);
+  if (state.view.startsWith("cohort:")) return cohort(match) === state.view.slice(7);
   if (state.view.startsWith("team:")) return match.tracked_team_id === state.view.slice(5);
   return true;
 }
@@ -172,7 +215,7 @@ function renderCard(match) {
   const card = elements.template.content.firstElementChild.cloneNode(true);
   if (match.status === "live") card.classList.add("is-live");
   card.querySelector("time").textContent = `Kl. ${timeFormatter.format(dateValue(match))}`;
-  card.querySelector(".class-pill").textContent = teamClassName(match.tracked_team_name);
+  card.querySelector(".class-pill").textContent = teamClassName(match);
   const pill = card.querySelector(".status-pill");
   pill.textContent = match.status === "finished" ? "Ferdig" : match.status === "live" ? "Live" : "Kommende";
   if (match.status === "live") pill.classList.add("is-live");
@@ -201,7 +244,7 @@ function renderMatches() {
   elements.matches.replaceChildren();
   if (!matches.length) {
     elements.matches.innerHTML = state.view === "favorites" && state.favorites.size === 0
-      ? '<div class="empty"><strong>Ingen favoritter ennå</strong>Velg et enkeltlag over og trykk på «☆ Favoritt».</div>'
+      ? '<div class="empty"><strong>Ingen favoritter ennå</strong>Trykk på «★ Velg favoritter» og kryss av lagene du vil følge.</div>'
       : '<div class="empty"><strong>Ingen kamper her</strong>Prøv et annet lag eller filter.</div>';
     return;
   }
@@ -253,7 +296,7 @@ async function loadData() {
       response = await fetch(`data/results.csv?t=${Date.now()}`, { cache: "no-store" });
       if (!response.ok) throw remoteError;
     }
-    state.matches = parseCsv(await response.text());
+    state.matches = parseCsv(await response.text()).map(normalizeMatch);
     elements.update.textContent = `Sist sjekket kl. ${updatedFormatter.format(new Date())}`;
     render();
   } catch (error) {
@@ -274,12 +317,9 @@ elements.statuses.addEventListener("click", (event) => {
 });
 elements.view.addEventListener("change", () => { state.view = elements.view.value; render(); });
 elements.favorite.addEventListener("click", () => {
-  const teamId = selectedTeamId();
-  if (!teamId) return;
-  if (state.favorites.has(teamId)) state.favorites.delete(teamId);
-  else state.favorites.add(teamId);
-  saveFavorites();
-  render();
+  renderFavoriteOptions();
+  elements.favoritesDialog.showModal();
 });
+elements.favoritesDialog.addEventListener("close", render);
 elements.refresh.addEventListener("click", loadData);
 loadData();

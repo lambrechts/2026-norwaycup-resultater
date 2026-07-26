@@ -32,9 +32,21 @@
         <label for="view-select">Vis kamper for</label>
         <div class="view-nav__controls">
           <select id="view-select" aria-label="Velg lag eller årskull"></select>
-          <button id="favorite-button" class="favorite-button" type="button" hidden></button>
+          <button id="favorite-button" class="favorite-button" type="button">★ Velg favoritter</button>
         </div>
       </nav>
+
+      <dialog id="favorites-dialog" class="favorites-dialog">
+        <form method="dialog">
+          <div class="favorites-dialog__header">
+            <div><span class="eyebrow-dialog">Min oversikt</span><h2>Velg favoritter</h2></div>
+            <button class="dialog-close" value="cancel" aria-label="Lukk" type="submit">×</button>
+          </div>
+          <p>Velg lagene du vil samle under visningen «Favoritter».</p>
+          <div id="favorite-options" class="favorite-options"></div>
+          <button class="dialog-done" value="done" type="submit">Ferdig</button>
+        </form>
+      </dialog>
 
       <div class="toolbar">
         <div id="status-buttons" class="filters" aria-label="Filtrer kamper">
