@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="nb">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#12372a">
+    <meta name="description" content="Kamper og resultater for Varegg/Sandviken under Norway Cup 2026.">
+    <title>Varegg/Sandviken · Norway Cup 2026</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero__inner">
+        <div class="eyebrow"><span class="eyebrow__dot"></span> Norway Cup 2026</div>
+        <h1>Varegg <span>/</span> Sandviken</h1>
+        <p>Kamper, baner og resultater samlet på ett sted.</p>
+        <div class="hero__meta">
+          <span id="update-status">Henter siste resultater …</span>
+          <button id="refresh-button" class="refresh" type="button" aria-label="Oppdater resultater">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5M4 18v-5h5M18.5 9A7 7 0 0 0 6.2 6.2L4 9m16 6-2.2 2.8A7 7 0 0 1 5.5 15"/></svg>
+            Oppdater
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section id="next-match" class="next-match" aria-live="polite"></section>
+
+      <nav class="team-nav" aria-label="Velg lag">
+        <div id="team-buttons" class="team-nav__scroll"></div>
+      </nav>
+
+      <div class="toolbar">
+        <div id="status-buttons" class="filters" aria-label="Filtrer kamper">
+          <button class="filter is-active" data-status="all" type="button">Alle</button>
+          <button class="filter" data-status="upcoming" type="button">Kommende</button>
+          <button class="filter" data-status="finished" type="button">Resultater</button>
+        </div>
+        <p id="match-count" class="match-count"></p>
+      </div>
+
+      <section id="matches" class="matches" aria-live="polite">
+        <div class="loading"><span></span><span></span><span></span></div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Uoffisiell resultatoversikt for Varegg/Sandviken.</p>
+      <a href="https://norwaycup.no/" rel="noreferrer">Norway Cup</a>
+    </footer>
+
+    <template id="match-template">
+      <article class="match-card">
+        <div class="match-card__meta">
+          <time></time>
+          <span class="status-pill"></span>
+        </div>
+        <div class="teams">
+          <div class="team team--home"><span class="team__name"></span><strong class="team__score"></strong></div>
+          <div class="team team--away"><span class="team__name"></span><strong class="team__score"></strong></div>
+        </div>
+        <div class="match-card__footer">
+          <span class="arena"></span>
+          <span class="group"></span>
+        </div>
+      </article>
+    </template>
+  </body>
+</html>

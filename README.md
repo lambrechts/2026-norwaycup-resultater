@@ -9,3 +9,7 @@ python3 fetch_results.py
 ```
 
 Jobben committer bare når innholdet i CSV-filen har endret seg.
+
+## Resultatside
+
+`index.html` viser kampene som en mobilvennlig oversikt og leser den publiserte CSV-filen direkte fra GitHub. Workflowen **Publiser resultatsiden** publiserer siden til GitHub Pages ved endringer på `main`.
