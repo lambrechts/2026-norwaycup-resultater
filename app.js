@@ -58,14 +58,14 @@ function normalizeMatch(match) {
 }
 
 function shortTeamName(name) {
-  return name
+  const shortened = name
     .replace(/^G16 /, "")
     .replace(/^J14 /, "")
     .replace(/^Varegg Fotball\s*/, "Varegg ")
     .replace(/^Sandviken, IL\s*/, "Sandviken ")
-    .replace(/Sandviken\/Varegg\s*/, "")
     .replace(/\/Sandviken\s*/, "")
     .trim();
+  return shortened || name;
 }
 
 function teamButtonName(name, className) {
