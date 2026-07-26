@@ -1,0 +1,36 @@
+name: Hent Norway Cup-resultater
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: norwaycup-results
+  cancel-in-progress: false
+
+jobs:
+  fetch-results:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Hent repoet
+        uses: actions/checkout@v4
+
+      - name: Hent resultater
+        run: python3 fetch_results.py
+
+      - name: Lagre endringer i repoet
+        run: |
+          if [ -z "$(git status --porcelain -- data/results.csv)" ]; then
+            echo "Ingen endringer i resultatene"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/results.csv
+          git commit -m "Oppdater Norway Cup-resultater"
+          git push
