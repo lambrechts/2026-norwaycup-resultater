@@ -22,6 +22,7 @@ const elements = {
   statuses: document.querySelector("#status-buttons"),
   next: document.querySelector("#next-match"),
   count: document.querySelector("#match-count"),
+  currentMatches: document.querySelector("#current-matches-button"),
   update: document.querySelector("#update-status"),
   refresh: document.querySelector("#refresh-button"),
   template: document.querySelector("#match-template"),
@@ -63,6 +64,7 @@ function shortTeamName(name) {
     .replace(/^J14 /, "")
     .replace(/^Varegg Fotball\s*/, "Varegg ")
     .replace(/^Sandviken, IL\s*/, "Sandviken ")
+    .replace(/^Sandviken\s+Sandviken\//, "Sandviken/")
     .replace(/\/Sandviken\s*/, "")
     .trim();
   return shortened || name;
@@ -79,6 +81,12 @@ function teamClassName(match) {
 function dateValue(match) { return new Date(match.start_time); }
 function isUpcoming(match) { return match.status !== "finished"; }
 function dayKey(match) { return match.start_time.slice(0, 10); }
+function localDayKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 function arenaMapUrl(arena) {
   const normalized = arena.toLocaleLowerCase("nb-NO");
   return ARENA_MAPS.find(([name]) => normalized.includes(name))?.[1] || "";
@@ -214,6 +222,8 @@ function renderNextMatch() {
 function renderCard(match) {
   const card = elements.template.content.firstElementChild.cloneNode(true);
   if (match.status === "live") card.classList.add("is-live");
+  if (isUpcoming(match)) card.classList.add("is-upcoming");
+  else card.classList.add("is-finished");
   card.querySelector("time").textContent = `Kl. ${timeFormatter.format(dateValue(match))}`;
   card.querySelector(".class-pill").textContent = teamClassName(match);
   const pill = card.querySelector(".status-pill");
@@ -241,6 +251,7 @@ function renderCard(match) {
 function renderMatches() {
   const matches = filteredMatches().sort((a, b) => dateValue(a) - dateValue(b));
   elements.count.textContent = `${matches.length} ${matches.length === 1 ? "kamp" : "kamper"}`;
+  elements.currentMatches.hidden = !matches.some(isUpcoming);
   elements.matches.replaceChildren();
   if (!matches.length) {
     elements.matches.innerHTML = state.view === "favorites" && state.favorites.size === 0
@@ -252,16 +263,20 @@ function renderMatches() {
   const groups = Map.groupBy ? Map.groupBy(matches, dayKey) : matches.reduce((map, match) => {
     const key = dayKey(match); if (!map.has(key)) map.set(key, []); map.get(key).push(match); return map;
   }, new Map());
-  groups.forEach((dayMatches) => {
-    const section = document.createElement("section");
-    section.className = "day-group";
+  const today = localDayKey(new Date());
+  groups.forEach((dayMatches, date) => {
+    const completedPastDay = date < today && dayMatches.every((match) => match.status === "finished");
+    const section = document.createElement(completedPastDay ? "details" : "section");
+    section.className = `day-group${completedPastDay ? " day-group--finished" : ""}`;
     const heading = document.createElement("h2");
     heading.className = "day-heading";
     heading.innerHTML = `${capitalize(dayFormatter.format(dateValue(dayMatches[0])))} <span>${dayMatches.length} ${dayMatches.length === 1 ? "kamp" : "kamper"}</span>`;
+    const headingWrapper = completedPastDay ? document.createElement("summary") : heading;
+    if (completedPastDay) headingWrapper.append(heading);
     const grid = document.createElement("div");
     grid.className = "day-grid";
     dayMatches.forEach((match) => grid.append(renderCard(match)));
-    section.append(heading, grid);
+    section.append(headingWrapper, grid);
     elements.matches.append(section);
   });
 }
@@ -322,4 +337,12 @@ elements.favorite.addEventListener("click", () => {
 });
 elements.favoritesDialog.addEventListener("close", render);
 elements.refresh.addEventListener("click", loadData);
+elements.currentMatches.addEventListener("click", () => {
+  if (state.status === "finished") {
+    state.status = "all";
+    elements.statuses.querySelectorAll("button").forEach((button) => button.classList.toggle("is-active", button.dataset.status === "all"));
+    renderMatches();
+  }
+  requestAnimationFrame(() => document.querySelector(".match-card.is-upcoming")?.scrollIntoView({ behavior: "smooth", block: "center" }));
+});
 loadData();

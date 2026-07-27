@@ -175,12 +175,22 @@ main { width: min(1040px, calc(100% - 32px)); margin: 0 auto; }
 .dialog-done { width: 100%; margin-top: 18px; padding: 12px; border: 0; border-radius: 11px; background: var(--green-900); color: white; font-weight: 800; cursor: pointer; }
 
 .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 18px 0 22px; }
+.toolbar__right { display: flex; align-items: center; gap: 12px; }
 .filters { display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: #e7e4dc; }
 .filter { padding: 7px 11px; border: 0; border-radius: 8px; background: transparent; color: #58645e; font-size: .82rem; font-weight: 750; cursor: pointer; }
 .filter.is-active { background: var(--paper); color: var(--green-900); box-shadow: 0 1px 4px rgba(0,0,0,.1); }
 .match-count { margin: 0; color: var(--muted); font-size: .8rem; white-space: nowrap; }
+.current-matches-button { padding: 8px 11px; border: 1px solid #bdc8c1; border-radius: 9px; background: transparent; color: var(--green-700); font-size: .78rem; font-weight: 800; white-space: nowrap; cursor: pointer; }
+.current-matches-button:hover { border-color: var(--green-700); background: var(--green-100); }
 
 .day-group { margin: 0 0 32px; }
+.day-group--finished { margin-bottom: 14px; border-bottom: 1px solid #d4d6d0; }
+.day-group--finished summary { display: flex; align-items: center; justify-content: space-between; padding: 5px 2px 13px; cursor: pointer; list-style: none; }
+.day-group--finished summary::-webkit-details-marker { display: none; }
+.day-group--finished summary::after { content: "+ Vis ferdig dag"; color: var(--green-700); font-size: .72rem; font-weight: 800; }
+.day-group--finished[open] summary::after { content: "− Skjul dag"; }
+.day-group--finished .day-heading { margin: 0; color: var(--muted); }
+.day-group--finished .day-grid { padding-bottom: 20px; }
 .day-heading { display: flex; align-items: baseline; gap: 10px; margin: 0 0 12px; font-size: 1.25rem; letter-spacing: -.02em; }
 .day-heading span { color: var(--muted); font-size: .77rem; font-weight: 650; letter-spacing: 0; }
 .day-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
@@ -238,6 +248,7 @@ footer a { color: var(--green-700); font-weight: 750; }
   .next-card__arena { grid-column: 2; grid-row: 1; max-width: 130px; }
   .day-grid { grid-template-columns: 1fr; }
   .toolbar { align-items: flex-end; }
+  .toolbar__right { margin-left: auto; }
   .view-nav { display: block; }
   .view-nav > label { display: block; padding: 0 0 8px; }
   .favorite-button { min-width: 46px; padding-inline: 12px; }

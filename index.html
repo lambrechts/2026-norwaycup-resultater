@@ -54,7 +54,10 @@
           <button class="filter" data-status="upcoming" type="button">Kommende</button>
           <button class="filter" data-status="finished" type="button">Resultater</button>
         </div>
-        <p id="match-count" class="match-count"></p>
+        <div class="toolbar__right">
+          <p id="match-count" class="match-count"></p>
+          <button id="current-matches-button" class="current-matches-button" type="button" hidden>Aktuelle kamper ↓</button>
+        </div>
       </div>
 
       <section id="matches" class="matches" aria-live="polite">
