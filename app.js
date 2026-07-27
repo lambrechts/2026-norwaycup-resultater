@@ -55,23 +55,34 @@ function normalizeMatch(match) {
   let officialName = match.tracked_team_name;
   if (!hasOfficialName && match.tracked_team_id === match.home_team_id && match.home_team) officialName = match.home_team;
   if (!hasOfficialName && match.tracked_team_id === match.away_team_id && match.away_team) officialName = match.away_team;
-  return { ...match, tracked_team_name: officialName, tracked_team_class: trackedClass };
+  return { ...match, tracked_team_name: cleanTeamName(officialName), tracked_team_class: trackedClass };
+}
+
+function cleanTeamName(name) {
+  return name
+    .replace(/^Sandviken,\s*IL\s+(?=.*Sandviken)/i, "")
+    .replace(/^Varegg Fotball\s+(?=.*Varegg)/i, "")
+    .replace(/\s*\/\s*/g, "/")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }
 
 function shortTeamName(name) {
-  const shortened = name
+  const shortened = cleanTeamName(name)
     .replace(/^G16 /, "")
     .replace(/^J14 /, "")
     .replace(/^Varegg Fotball\s*/, "Varegg ")
     .replace(/^Sandviken, IL\s*/, "Sandviken ")
     .replace(/^Sandviken\s+Sandviken\//, "Sandviken/")
     .replace(/\/Sandviken\s*/, "")
+    .replace(/\s*\/\s*/g, "/")
     .trim();
   return shortened || name;
 }
 
 function teamButtonName(name, className) {
-  return name.toLowerCase().startsWith(className.toLowerCase()) ? name : `${className} · ${name}`;
+  const cleaned = cleanTeamName(name);
+  return cleaned.toLowerCase().startsWith(className.toLowerCase()) ? cleaned : `${className} · ${cleaned}`;
 }
 
 function teamClassName(match) {
