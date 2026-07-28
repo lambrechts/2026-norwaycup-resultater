@@ -322,7 +322,9 @@ async function loadData() {
       response = await fetch(`data/results.csv?t=${Date.now()}`, { cache: "no-store" });
       if (!response.ok) throw remoteError;
     }
-    state.matches = parseCsv(await response.text()).map(normalizeMatch);
+    state.matches = parseCsv(await response.text())
+      .filter((match) => match.tracked_team_id === match.home_team_id || match.tracked_team_id === match.away_team_id)
+      .map(normalizeMatch);
     elements.update.textContent = `Sist sjekket kl. ${updatedFormatter.format(new Date())}`;
     render();
   } catch (error) {

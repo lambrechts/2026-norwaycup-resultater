@@ -149,6 +149,12 @@ def match_rows(team_id: int, label: str, payload: dict[str, Any]) -> list[dict[s
             continue
         home = match.get("home") or {}
         away = match.get("away") or {}
+        home_team_id = (home.get("team") or {}).get("id")
+        away_team_id = (away.get("team") or {}).get("id")
+        # CupManager may include a team's possible route through the entire
+        # playoff tree. Keep only matches where this team is an actual actor.
+        if team_id not in (home_team_id, away_team_id):
+            continue
         result = match.get("result") or {}
         division = match.get("division") or {}
         arena = match.get("arena") or {}
@@ -166,9 +172,9 @@ def match_rows(team_id: int, label: str, payload: dict[str, Any]) -> list[dict[s
                 "stage": display_name((division.get("stage") or {}).get("name")),
                 "group": display_name(division.get("name")),
                 "home_team": display_name(home.get("name")),
-                "home_team_id": (home.get("team") or {}).get("id", ""),
+                "home_team_id": home_team_id or "",
                 "away_team": display_name(away.get("name")),
-                "away_team_id": (away.get("team") or {}).get("id", ""),
+                "away_team_id": away_team_id or "",
                 "home_goals": result.get("homeGoals", "") if match.get("finished") or match.get("live") else "",
                 "away_goals": result.get("awayGoals", "") if match.get("finished") or match.get("live") else "",
                 "winner": winner if match.get("finished") else "",
