@@ -1,9 +1,6 @@
 name: Hent Norway Cup-resultater
 
-on:
-  schedule:
-    - cron: "7,22,37,52 * * * *"
-  workflow_dispatch:
+
 
 permissions:
   contents: write
